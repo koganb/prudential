@@ -138,6 +138,7 @@ sqwkSummary <- function (data,
                         model = NULL) {
   out <- ScoreQuadraticWeightedKappa(as.numeric(data$pred), as.numeric(data$obs))  
   names(out) <- "sqwk"
+  print(paste0("sqwk", out))
   out
 }
 

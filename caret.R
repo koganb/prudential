@@ -8,6 +8,8 @@
 ##############################################
 ###################################################################################
 
+library("futile.logger")
+flog.threshold(DEBUG)
 
 
 ###############################################################################
@@ -126,7 +128,7 @@ library("Metrics")
 
 set.seed(998)
 
-inTraining <- createDataPartition(train$Response, p = .1, list = FALSE)
+inTraining <- createDataPartition(train$Response, p = .07, list = FALSE)
 training <- train[ inTraining,]
 testing  <- train[-inTraining,]
 
@@ -138,7 +140,7 @@ sqwkSummary <- function (data,
                         model = NULL) {
   out <- ScoreQuadraticWeightedKappa(as.numeric(data$pred), as.numeric(data$obs))  
   names(out) <- "sqwk"
-  print(paste0("sqwk", out))
+  flog.debug("sqwk weight - %s ", out)
   out
 }
 
@@ -153,6 +155,14 @@ fitControl <- trainControl(## 10-fold CV
 
 
 
+#gbmGrid <-  expand.grid(interaction.depth = c(1, 2, 3, 4),
+#                        n.trees = (1:30)*50,
+#                        shrinkage = 0.10,
+#                        n.minobsinnode = c(5, 10, 15))
+
+
+
+
 set.seed(825)
 gbmFit <- train(Response ~ ., data = training,
                  method = "gbm",
@@ -161,158 +171,27 @@ gbmFit <- train(Response ~ ., data = training,
                  ## for gbm() that passes through
                  verbose = FALSE,
                  metric = "sqwk")
+                #tuneGrid = gbmGrid)
+
+
+
+
+gbmFit
+
+importance <- varImp(gbmFit, scale=FALSE)
+# summarize importance
+print(importance)
+# plot importance
+plot(importance)
+
+
+
+res <- apply(train, 2, function(col)sum(is.na(col))/length(col))
+res[res>0]
+length(res[res>0])
 
 
 
 
 
 
-
-
-
-train_70 <- train[train$random <= 0.7,] #41,561 obs
-train_30 <- train[train$random > 0.7,] #17,820 obs
-
-#Lets have a look at distribution of response on train_70 and train_30
-
-round(table(train_70$Response)/nrow(train_70),2)
-# 1     2     3      4     5     6    7    8  
-#0.10  0.11  0.02  0.02  0.09  0.19  0.13  0.33
-
-round(table(train_30$Response)/nrow(train_30),2)
-#  1     2     3     4     5     6     7    8 
-#0.10  0.11  0.02  0.02  0.09  0.19  0.14  0.33
-
-
-#The response distribtion holds up well across the random split
-
-#Lets build a very simple GBM on train_70 and calculate the performance on train_30
-
-#To make the GBM run faster I will subset train_70 to only include the variables I want in the model
-train_70 <- train_70[,c("Response","BMI","Wt","Ht","Ins_Age","Number_medical_keywords","Wt_quintile")] #41,561, 7 variables
-
-if (FALSE) {
-  library("gbm") #cran version, we will use multinomial distribution for a quick solution to this problem
-  
-  
-  GBM_train <- gbm(Response ~ .,
-                   data=train_70,
-                   n.trees=50,
-                   distribution = "multinomial",
-                   interaction.depth=5,
-                   n.minobsinnode=40,
-                   shrinkage=0.1,
-                   cv.folds=0,
-                   n.cores=1,
-                   train.fraction=1,
-                   bag.fraction=0.7,
-                   verbose=T)
-  
-  GBM_train$opt_tree <- gbm.perf(GBM_train, method="OOB") #Use the OOB method to determine the optimal number of trees
-  summary(GBM_train,n.trees=GBM_train$opt_tree)
-  
-  #                                            var      rel.inf
-  #BMI                                         BMI 69.162022994
-  #Number_medical_keywords Number_medical_keywords 16.429628418
-  #Wt                                           Wt  7.465865182
-  #Ins_Age                                 Ins_Age  6.935694263
-  #Ht                                           Ht  0.004231908
-  #Wt_quintile                         Wt_quintile  0.002557234
-  
-  #It looks like Ht and Wt_quintile have little impact in this model, however the number of medical keywords and BMI variables seem to have significant impact on the GBM
-  #We should investigate what this impact is and ensure we are not overfitting. The train_30 data would help for this, for example we could look at some actual versus predicted plots across these variables on the train_30 etc.
-  
-  
-  #Now that we have a model, lets score train_30 and calculate the quadratic kappa
-  
-  Prediction_Object <- predict(GBM_train,train_30,GBM_train$opt_tree,type="response")
-  
-  #an array with the probability of falling into each class for each observation (the probability will add up to 1 across all classes)
-  #We want to classify each application, a trivial approach would be to take the class with the highest predicted probability for each application
-  
-  train_30$Prediction <- apply(Prediction_Object, 1, which.max)
-  
-  round(table(train_30$Prediction)/nrow(train_30),2)
-  # 1     2     5      6    7      8 
-  #0.06  0.04  0.07  0.21  0.05   0.58
-  
-  
-  round((table(train_30$Prediction,train_30$Response)/nrow(train_30))*100,1)
-  
-  #        1    2    3    4    5    6    7    8
-  #Pred1  1.8  1.0  0.1  0.0  0.5  1.0  0.7  0.5
-  #Pred2  1.0  1.7  0.0  0.0  0.8  0.4  0.2  0.1
-  #Pred5  0.8  1.2  0.3  0.0  3.0  1.0  0.1  0.1
-  #Pred6  2.5  2.9  0.5  0.4  2.2  6.8  4.0  1.7
-  #Pred7  0.5  0.5  0.1  0.1  0.4  1.2  1.5  0.7
-  #Pred8  3.9  3.6  0.7  2.0  2.1  8.1  7.2 29.8
-  
-  #This predicted distribution is different to the actual distribution we looked at above, We have not classed any applications into groups 3 or 4... we would need to improve the model
-  #Lets calculate the quadratic weighted kappa with this model
-  
-  library("Metrics")
-  ScoreQuadraticWeightedKappa(train_30$Prediction,as.numeric(train_30$Response)) #0.3400944
-}
-
-if (FALSE) {
-  #try support vector machines
-  #http://rischanlab.github.io/SVM.html
-  library("e1071")
-  
-  #svm_model <- svm(Response ~ ., data=train_70)
-  #summary(svm_model)
-  
-  
-  obj <- tune.svm(Response ~ ., data=train_70, 
-                  cost = 2^(2:8), 
-                  kernel = "linear") 
-  
-  svm_model <- obj$best.model
-  
-  attach(train_30)
-  x <- subset(train_30, select=-Response)
-  y <- Response
-  pred <- predict(svm_model,x)
-  table(pred,y)
-}
-
-
-if (FALSE) {
-  library("glmnet")
-  x <- subset(train_70, select=-c(Response, Wt_quintile))
-  y <- train_70$Response
-  fit=cv.glmnet(data.matrix(x),y,family="multinomial",type.measure ="class")
-  
-  pred_set <-subset(train_30, select=c(BMI,Wt,Ht,Ins_Age,Number_medical_keywords))
-  
-  pred_res <- predict(fit,data.matrix(pred_set), type = "class")
-  table(pred_res, train_30$Response)
-  library("Metrics")
-  ScoreQuadraticWeightedKappa(as.numeric(pred_res),as.numeric(train_30$Response))
-  
-}
-
-
-
-##############################################################
-#Step 5: Score test data
-#        Repeat step 4 till we are happy with the model. It could be beneficial to rerun the final model on all of the training data and use cross validation etc.
-#        Once we are happy, score the testing data and create a submission file
-##########################################################
-
-
-Prediction_Object <- predict(GBM_train,test,GBM_train$opt_tree,type="response")
-
-#an array with probability of falling into each class for each observation
-#We want to classify each application, a trivial approach would be to take the class with the highest predicted probability for each application
-
-test$Response <- apply(Prediction_Object, 1, which.max)
-
-round(table(test$Response)/nrow(test),2)
-# 1      2     5     6      7    8 
-#0.06  0.04   0.06  0.21  0.05  0.57
-
-
-submission_file <- test[,c("Id","Response")] #19,765 obs, 2 variables
-
-write.csv(submission_file,"Submission_file.csv",row.names=FALSE)

@@ -14,6 +14,8 @@
 #Step 1: Read in the data and define variables as either a factor or numeric
 #########################################################################################
 
+library(futile.logger)
+flog.threshold(DEBUG)
 
 train <- read.csv("data/train.csv",stringsAsFactors = T) #59,381 observations, 128 variables
 test <- read.csv("data/test.csv",stringsAsFactors = T) #19,765 observations, 127 variables - test does not have a response field
@@ -29,7 +31,7 @@ All_Data <- rbind(train,test) #79,146 observations, 129 variables
 
 
 #Define variables as either numeric or factor, Data_1 - Numeric Variables, Data_2 - factor variables
-Data_1 <- All_Data[,names(All_Data) %in% c("Product_Info_4",    "Ins_Age",	"Ht",	"Wt",	"BMI",	"Employment_Info_1",	"Employment_Info_4",	"Employment_Info_6",	"Insurance_History_5",	"Family_Hist_2",	"Family_Hist_3",	"Family_Hist_4",	"Family_Hist_5",	"Medical_History_1",	"Medical_History_15",	"Medical_History_24",	"Medical_History_32",paste("Medical_Keyword_",1:48,sep=""))]
+Data_1 <- All_Data[,names(All_Data) %in% c("Product_Info_4",    "Ins_Age",    "Ht",	"Wt",	"BMI",	"Employment_Info_1",	"Employment_Info_4",	"Employment_Info_6",	"Insurance_History_5",	"Family_Hist_2",	"Family_Hist_3",	"Family_Hist_4",	"Family_Hist_5",	"Medical_History_1",	"Medical_History_15",	"Medical_History_24",	"Medical_History_32",paste("Medical_Keyword_",1:48,sep=""))]
 Data_2 <- All_Data[,!(names(All_Data) %in% c("Product_Info_4",	"Ins_Age",	"Ht",	"Wt",	"BMI",	"Employment_Info_1",	"Employment_Info_4",	"Employment_Info_6",	"Insurance_History_5",	"Family_Hist_2",	"Family_Hist_3",	"Family_Hist_4",	"Family_Hist_5",	"Medical_History_1",	"Medical_History_15",	"Medical_History_24",	"Medical_History_32",paste("Medical_Keyword_",1:48,sep="")))]
 Data_2<- data.frame(apply(Data_2, 2, as.factor))
 
@@ -86,33 +88,59 @@ round(table(train_30$Response)/nrow(train_30),2)
 
 
 
+#TODO Employment_Info_2 - create cutoff
+#TODO Family_Hist_2-5 
+#TODO Medical_History_1-41
 
 
+data_columns <- c('Ht','Wt','BMI','Ins_Age',
+                  "Product_Info_1","Product_Info_2", "Product_Info_3", "Product_Info_5", "Product_Info_6","Product_Info_7",
+                  "Insurance_History_1","Insurance_History_2","Insurance_History_3","Insurance_History_4","Insurance_History_5","Insurance_History_7","Insurance_History_8","Insurance_History_9",
+                  "Employment_Info_1","Employment_Info_2","Employment_Info_3","Employment_Info_4","Employment_Info_5","Employment_Info_6",
+                  "InsuredInfo_1","InsuredInfo_2","InsuredInfo_3","InsuredInfo_4","InsuredInfo_5","InsuredInfo_6",
+                  "Family_Hist_1",
+                  paste("Medical_Keyword_",1:41,sep=""))
 
-data_columns <- c('Ht','Wt','BMI','Ins_Age', "Product_Info_1","Product_Info_2", "Product_Info_3", "Product_Info_5", "Product_Info_6","Product_Info_7")
 
+f1 <- as.formula(paste0("~0+", paste(data_columns, collapse="+"), "+Response"))
 
-f1 <- as.formula(paste0("~0+Response+", paste(data_columns, collapse="+")))
+train_70_subset<-subset(train_70,select=append(data_columns, "Response"))
 
-nn_test_data=data.frame(model.matrix(f1, subset(train_70,select=append(data_columns, "Response"))))
+nn_test_data=data.frame(model.matrix(f1, train_70_subset, lapply(as.list(Filter(is.factor, train_70_subset)), contrasts,  contrasts = FALSE)))
 
-f2 <- as.formula(paste0(paste(names(nn_test_data)[grepl("Response", names(nn_data))], collapse="+"), "~", paste(names(nn_data)[!grepl("Response", names(nn_data))], collapse="+")))
+f2 <- as.formula(paste0(paste(names(nn_test_data)[grepl("Response", names(nn_test_data))], collapse="+"), "~", paste(names(nn_test_data)[!grepl("Response", names(nn_test_data))], collapse="+")))
 
 library("neuralnet")
-debugonce(neuralnet)
-nnModel = neuralnet(f2,data=head(nn_test_data, 5000),linear.output=F)
+#debugonce(neuralnet)
+
+
+library("Metrics")
+#custom <- function(x,y){
+#    print ("Inside")
+    #sqwk <- ScoreQuadraticWeightedKappa(as.numeric(x), as.numeric(y))
+    #flog.debug("sqwk - %s", sqwk)
+#    return (0)
+#}
+
+
+#custom <- function(x,y){1/2*(y-x)^2}
+
+nnModel = neuralnet(f2,data=nn_test_data,linear.output=F, lifesign = 'full',err.fct = 'ce', stepmax=100000, rep=3)
 
 
 
 
 f3 <- as.formula(paste0("~0+", paste(data_columns, collapse="+")))
-nn_train_data=head(data.frame(model.matrix(f3, subset(train_30,select=data_columns))), 1)
 
 
-print(compute(nnModel,nn_train_data))
+train_30_subset<-subset(train_30, select=data_columns)
+nn_train_data=data.frame(model.matrix(f3, train_30_subset,lapply(as.list(Filter(is.factor, train_30_subset)), contrasts,  contrasts = FALSE)))
 
 
-round((table(train_30$Prediction,train_30$Response)/nrow(train_30))*100,1)
+train_30$Prediction <- apply(compute(nnModel,nn_train_data)$net.result, 1, which.max)
+
+
+print(round((table(train_30$Prediction,train_30$Response)/nrow(train_30))*100,1))
 
 #        1    2    3    4    5    6    7    8
 #Pred1  1.8  1.0  0.1  0.0  0.5  1.0  0.7  0.5
@@ -129,6 +157,5 @@ library("Metrics")
 testKappa <- ScoreQuadraticWeightedKappa(as.numeric(train_30$Prediction),as.numeric(train_30$Response)) #0.3400944
 
 print(testKappa)
-
 
 

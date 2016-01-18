@@ -95,11 +95,7 @@ round(table(train_30$Response)/nrow(train_30),2)
 
 data_columns <- c('Ht','Wt','BMI','Ins_Age',
                   "Product_Info_1","Product_Info_2", "Product_Info_3", "Product_Info_5", "Product_Info_6","Product_Info_7",
-                  "Insurance_History_1","Insurance_History_2","Insurance_History_3","Insurance_History_4","Insurance_History_5","Insurance_History_7","Insurance_History_8","Insurance_History_9",
-                  "Employment_Info_1","Employment_Info_2","Employment_Info_3","Employment_Info_4","Employment_Info_5","Employment_Info_6",
-                  "InsuredInfo_1","InsuredInfo_2","InsuredInfo_3","InsuredInfo_4","InsuredInfo_5","InsuredInfo_6",
-                  "Family_Hist_1",
-                  paste("Medical_Keyword_",1:41,sep=""))
+                  "Insurance_History_1","Insurance_History_2","Insurance_History_3","Insurance_History_4","Insurance_History_7","Insurance_History_8","Insurance_History_9")
 
 
 f1 <- as.formula(paste0("~0+", paste(data_columns, collapse="+"), "+Response"))
@@ -125,9 +121,7 @@ library("Metrics")
 
 #custom <- function(x,y){1/2*(y-x)^2}
 
-nnModel = neuralnet(f2,data=nn_test_data,linear.output=F, lifesign = 'full',err.fct = 'ce', stepmax=100000, rep=3)
-
-
+nnModel = neuralnet(f2,data=nn_test_data,linear.output=F, lifesign = 'full',stepmax=100000, )
 
 
 f3 <- as.formula(paste0("~0+", paste(data_columns, collapse="+")))
@@ -157,5 +151,6 @@ library("Metrics")
 testKappa <- ScoreQuadraticWeightedKappa(as.numeric(train_30$Prediction),as.numeric(train_30$Response)) #0.3400944
 
 print(testKappa)
+
 
 

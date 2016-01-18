@@ -1,0 +1,64 @@
+summary(train$Employment_Info_1)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+0.00000 0.03500 0.06000 0.07758 0.10000 1.00000      19 
+
+summary(train$Employment_Info_4)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+  0.000   0.000   0.000   0.006   0.000   1.000    6779 
+
+summary(train$Employment_Info_6)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+  0.000   0.060   0.250   0.362   0.550   1.000   10854 
+---------------------------------------------------------
+summary(train$Insurance_History_5)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+  0.000   0.000   0.001   0.002   0.002   1.000   25396 
+---------------------------------------------------------
+summary(train$Family_Hist_2)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+  0.000   0.362   0.464   0.475   0.580   1.000   28656   
+  
+summary(train$Family_Hist_3)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+   0.00    0.40    0.52    0.50    0.60    1.00   34241 
+
+summary(train$Family_Hist_4)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+  0.000   0.324   0.422   0.445   0.563   0.944   19184 
+
+summary(train$Family_Hist_5)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+   0.00    0.40    0.51    0.48    0.58    1.00   41811 
+---------------------------------------------------------
+summary(train$Medical_History_1)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+  0.000   2.000   4.000   7.962   9.000 240.000    8889 
+
+summary(train$Medical_History_10)
+    240       0       1       2       5       8       3       4       6      13      19     111     120       7       9      10      16      24      27 
+    270      75      22      13      10       6       5       5       4       4       4       4       4       3       3       3       3       3       3 
+     28      59      75      84     181     183      12      14      15      20      22      40      43      52      83     112     113     142     156 
+      3       3       3       3       3       3       2       2       2       2       2       2       2       2       2       2       2       2       2 
+    180     225     229     236      11      21      26      32      35      39      42      47      48      49      50      51      54      56      57 
+      2       2       2       2       1       1       1       1       1       1       1       1       1       1       1       1       1       1       1 
+     58      62      63      64      66      69      71      76      77      79      80      86      87      91      92      97      98     102     115 
+      1       1       1       1       1       1       1       1       1       1       1       1       1       1       1       1       1       1       1 
+    119     127     133     136     137     146     150     158     160     162     167     170     171     175     185     190     191     196     201 
+      1       1       1       1       1       1       1       1       1       1       1       1       1       1       1       1       1       1       1 
+    216     218     219 (Other)    NA's 
+      1       1       1       5   58824
+	  
+summary(train$Medical_History_15)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+    0.0    17.0   117.0   123.8   240.0   240.0   44596 
+	
+summary(train$Medical_History_24)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+   0.00    1.00    8.00   50.64   64.00  240.00   55580 
+
+summary(train$Medical_History_32)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+   0.00    0.00    0.00   11.97    2.00  240.00   58274 
+
+   
+   

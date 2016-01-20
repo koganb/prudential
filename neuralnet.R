@@ -94,17 +94,35 @@ round(table(train_30$Response)/nrow(train_30),2)
 
 
 data_columns <- c('Ht','Wt','BMI','Ins_Age',
-                  "Product_Info_1","Product_Info_2", "Product_Info_3", "Product_Info_5", "Product_Info_6","Product_Info_7",
-                  "Insurance_History_1","Insurance_History_2","Insurance_History_3","Insurance_History_4","Insurance_History_7","Insurance_History_8","Insurance_History_9")
+                  "Product_Info_1","Product_Info_2", "Product_Info_3", "Product_Info_5", "Product_Info_6","Product_Info_7"
+                  ,"Insurance_History_1","Insurance_History_2","Insurance_History_3","Insurance_History_4","Insurance_History_7","Insurance_History_8","Insurance_History_9")
+
+
+
+#,"Insurance_History_1","Insurance_History_2","Insurance_History_3","Insurance_History_4","Insurance_History_7","Insurance_History_8","Insurance_History_9",
+#"Employment_Info_2","Employment_Info_3","Employment_Info_5",
+#"InsuredInfo_1","InsuredInfo_2","InsuredInfo_3","InsuredInfo_4","InsuredInfo_5","InsuredInfo_6",
+#"Family_Hist_1",
+#paste("Medical_History_",2:9,sep=""), paste("Medical_History_",11:14,sep=""),paste("Medical_History_",16:24,sep=""), paste("Medical_History_",25:32,sep=""),  
+#paste("Medical_Keyword_",1:41,sep="")
 
 
 f1 <- as.formula(paste0("~0+", paste(data_columns, collapse="+"), "+Response"))
 
 train_70_subset<-subset(train_70,select=append(data_columns, "Response"))
 
-nn_test_data=data.frame(model.matrix(f1, train_70_subset, lapply(as.list(Filter(is.factor, train_70_subset)), contrasts,  contrasts = FALSE)))
+nn_train_data=data.frame(model.matrix(f1, train_70_subset, lapply(as.list(Filter(is.factor, train_70_subset)), contrasts,  contrasts = FALSE)))
 
-f2 <- as.formula(paste0(paste(names(nn_test_data)[grepl("Response", names(nn_test_data))], collapse="+"), "~", paste(names(nn_test_data)[!grepl("Response", names(nn_test_data))], collapse="+")))
+f2 <- as.formula(paste0(paste(names(nn_train_data)[grepl("Response", names(nn_train_data))], collapse="+"), "~", paste(names(nn_train_data)[!grepl("Response", names(nn_train_data))], collapse="+")))
+
+
+f3 <- as.formula(paste0("~0+", paste(data_columns, collapse="+")))
+
+
+train_30_subset<-subset(train_30, select=data_columns)
+nn_test_data=data.frame(model.matrix(f3, train_30_subset,lapply(as.list(Filter(is.factor, train_30_subset)), contrasts,  contrasts = FALSE)))
+
+
 
 library("neuralnet")
 #debugonce(neuralnet)
@@ -121,17 +139,12 @@ library("Metrics")
 
 #custom <- function(x,y){1/2*(y-x)^2}
 
-nnModel = neuralnet(f2,data=nn_test_data,linear.output=F, lifesign = 'full',stepmax=100000, )
+nnModel = neuralnet(f2,data=nn_train_data,linear.output=F, lifesign = 'full')
 
 
-f3 <- as.formula(paste0("~0+", paste(data_columns, collapse="+")))
 
 
-train_30_subset<-subset(train_30, select=data_columns)
-nn_train_data=data.frame(model.matrix(f3, train_30_subset,lapply(as.list(Filter(is.factor, train_30_subset)), contrasts,  contrasts = FALSE)))
-
-
-train_30$Prediction <- apply(compute(nnModel,nn_train_data)$net.result, 1, which.max)
+train_30$Prediction <- apply(compute(nnModel,nn_test_data)$net.result, 1, which.max)
 
 
 print(round((table(train_30$Prediction,train_30$Response)/nrow(train_30))*100,1))

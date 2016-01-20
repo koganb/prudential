@@ -40,15 +40,26 @@ All_Data <- cbind(Data_1,Data_2) #79,146 observations, 129 variables
 #We don't need Data_1,Data_2,train or test anymore
 rm(Data_1,Data_2,train,test)
 
-#Look at structure of All_Data - The variables seem to be classed as recommended on the data guide for the competition
-#str(All_Data)
 
-#Function to sum across rows for variables defined
-psum <- function(...,na.rm=FALSE) { 
-    rowSums(do.call(cbind,list(...)),na.rm=na.rm) }
-All_Data$Number_medical_keywords <- psum(All_Data[,c(paste("Medical_Keyword_",1:48,sep=""))])
+#reduce factor level number to 30
+All_Data$Medical_History_2 <- cut(as.numeric(All_Data$Medical_History_2), 30)
+All_Data$Medical_History_10 <- cut(as.numeric(All_Data$Medical_History_10), 30)
 
 
+#convert numeric to factor
+All_Data$Medical_History_1 <- cut(as.numeric(All_Data$Medical_History_1), 30)
+All_Data$Medical_History_15 <- cut(as.numeric(All_Data$Medical_History_15), 30)
+All_Data$Medical_History_24 <- cut(as.numeric(All_Data$Medical_History_24), 30)
+All_Data$Medical_History_32 <- cut(as.numeric(All_Data$Medical_History_32), 30)
+
+All_Data$Employment_Info_1 <- cut(as.numeric(All_Data$Employment_Info_1), 30)
+All_Data$Employment_Info_4 <- cut(as.numeric(All_Data$Employment_Info_4), 30)
+All_Data$Employment_Info_6 <- cut(as.numeric(All_Data$Employment_Info_6), 30)
+All_Data$Insurance_History_5  <- cut(as.numeric(All_Data$Insurance_History_5), 30)
+All_Data$Family_Hist_2 <- cut(as.numeric(All_Data$Family_Hist_2), 30)
+All_Data$Family_Hist_3 <- cut(as.numeric(All_Data$Family_Hist_3), 30)
+All_Data$Family_Hist_4 <- cut(as.numeric(All_Data$Family_Hist_4), 30)
+All_Data$Family_Hist_5 <- cut(as.numeric(All_Data$Family_Hist_5), 30)
 
 
 ##############################################################
@@ -87,24 +98,19 @@ round(table(train_30$Response)/nrow(train_30),2)
 #Lets build a very simple GBM on train_70 and calculate the performance on train_30
 
 
+data_columns <- c('Ht','Wt','BMI','Ins_Age'
+                  ,paste("Product_Info_", 1:7, sep="")
+                  ,paste("Insurance_History_", 1:5, sep=""),paste("Insurance_History_", 7:9, sep="")
+                  ,paste("Employment_Info_", 1:6, sep="")
+                  ,paste("InsuredInfo_", 1:6, sep="")
+                  ,paste("Family_Hist_", 1:5, sep="")
+                  ,paste("Medical_History_",1:41,sep="")
+                  ,paste("Medical_Keyword_",1:48,sep="")                  
+                  )
 
-#TODO Employment_Info_2 - create cutoff
-#TODO Family_Hist_2-5 
-#TODO Medical_History_1-41
-
-
-data_columns <- c('Ht','Wt','BMI','Ins_Age',
-                  "Product_Info_1","Product_Info_2", "Product_Info_3", "Product_Info_5", "Product_Info_6","Product_Info_7"
-                  ,"Insurance_History_1","Insurance_History_2","Insurance_History_3","Insurance_History_4","Insurance_History_7","Insurance_History_8","Insurance_History_9")
 
 
 
-#,"Insurance_History_1","Insurance_History_2","Insurance_History_3","Insurance_History_4","Insurance_History_7","Insurance_History_8","Insurance_History_9",
-#"Employment_Info_2","Employment_Info_3","Employment_Info_5",
-#"InsuredInfo_1","InsuredInfo_2","InsuredInfo_3","InsuredInfo_4","InsuredInfo_5","InsuredInfo_6",
-#"Family_Hist_1",
-#paste("Medical_History_",2:9,sep=""), paste("Medical_History_",11:14,sep=""),paste("Medical_History_",16:24,sep=""), paste("Medical_History_",25:32,sep=""),  
-#paste("Medical_Keyword_",1:41,sep="")
 
 
 f1 <- as.formula(paste0("~0+", paste(data_columns, collapse="+"), "+Response"))
@@ -139,7 +145,7 @@ library("Metrics")
 
 #custom <- function(x,y){1/2*(y-x)^2}
 
-nnModel = neuralnet(f2,data=nn_train_data,linear.output=F, lifesign = 'full')
+nnModel = neuralnet(f2,data=nn_train_data,linear.output=F, lifesign = 'full', threshold=0.01)
 
 
 

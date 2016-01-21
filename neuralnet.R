@@ -31,8 +31,8 @@ All_Data <- rbind(train,test) #79,146 observations, 129 variables
 
 
 #Define variables as either numeric or factor, Data_1 - Numeric Variables, Data_2 - factor variables
-Data_1 <- All_Data[,names(All_Data) %in% c("Product_Info_4",    "Ins_Age",    "Ht",	"Wt",	"BMI",	"Employment_Info_1",	"Employment_Info_4",	"Employment_Info_6",	"Insurance_History_5",	"Family_Hist_2",	"Family_Hist_3",	"Family_Hist_4",	"Family_Hist_5",	"Medical_History_1",	"Medical_History_15",	"Medical_History_24",	"Medical_History_32",paste("Medical_Keyword_",1:48,sep=""))]
-Data_2 <- All_Data[,!(names(All_Data) %in% c("Product_Info_4",	"Ins_Age",	"Ht",	"Wt",	"BMI",	"Employment_Info_1",	"Employment_Info_4",	"Employment_Info_6",	"Insurance_History_5",	"Family_Hist_2",	"Family_Hist_3",	"Family_Hist_4",	"Family_Hist_5",	"Medical_History_1",	"Medical_History_15",	"Medical_History_24",	"Medical_History_32",paste("Medical_Keyword_",1:48,sep="")))]
+Data_1 <- All_Data[,names(All_Data) %in% c("Medical_History_10","Medical_History_2","Product_Info_4",    "Ins_Age",    "Ht",	"Wt",	"BMI",	"Employment_Info_1",	"Employment_Info_4",	"Employment_Info_6",	"Insurance_History_5",	"Family_Hist_2",	"Family_Hist_3",	"Family_Hist_4",	"Family_Hist_5",	"Medical_History_1",	"Medical_History_15",	"Medical_History_24",	"Medical_History_32",paste("Medical_Keyword_",1:48,sep=""))]
+Data_2 <- All_Data[,!(names(All_Data) %in% c("Medical_History_10","Medical_History_2","Product_Info_4",	"Ins_Age",	"Ht",	"Wt",	"BMI",	"Employment_Info_1",	"Employment_Info_4",	"Employment_Info_6",	"Insurance_History_5",	"Family_Hist_2",	"Family_Hist_3",	"Family_Hist_4",	"Family_Hist_5",	"Medical_History_1",	"Medical_History_15",	"Medical_History_24",	"Medical_History_32",paste("Medical_Keyword_",1:48,sep="")))]
 Data_2<- data.frame(apply(Data_2, 2, as.factor))
 
 All_Data <- cbind(Data_1,Data_2) #79,146 observations, 129 variables
@@ -41,25 +41,24 @@ All_Data <- cbind(Data_1,Data_2) #79,146 observations, 129 variables
 rm(Data_1,Data_2,train,test)
 
 
-#reduce factor level number to 30
-All_Data$Medical_History_2 <- cut(as.numeric(All_Data$Medical_History_2), 30)
-All_Data$Medical_History_10 <- cut(as.numeric(All_Data$Medical_History_10), 30)
-
+library("Hmisc")
 
 #convert numeric to factor
-All_Data$Medical_History_1 <- cut(as.numeric(All_Data$Medical_History_1), 30)
-All_Data$Medical_History_15 <- cut(as.numeric(All_Data$Medical_History_15), 30)
-All_Data$Medical_History_24 <- cut(as.numeric(All_Data$Medical_History_24), 30)
-All_Data$Medical_History_32 <- cut(as.numeric(All_Data$Medical_History_32), 30)
+All_Data$Medical_History_1 <- addNA(cut2(All_Data$Medical_History_1, m=500,levels.mean=T))
+All_Data$Medical_History_2 <- cut2(All_Data$Medical_History_2, m=1500, levels.mean=T)
+All_Data$Medical_History_10 <- addNA(cut2(All_Data$Medical_History_10, m=100, levels.mean=T))
+All_Data$Medical_History_15 <- addNA(cut2(All_Data$Medical_History_15, m=500, levels.mean=T))
+All_Data$Medical_History_24 <- addNA(cut2(All_Data$Medical_History_24, m=500, levels.mean=T))
+All_Data$Medical_History_32 <- addNA(cut2(All_Data$Medical_History_32, m=500, levels.mean=T))
 
-All_Data$Employment_Info_1 <- cut(as.numeric(All_Data$Employment_Info_1), 30)
-All_Data$Employment_Info_4 <- cut(as.numeric(All_Data$Employment_Info_4), 30)
-All_Data$Employment_Info_6 <- cut(as.numeric(All_Data$Employment_Info_6), 30)
-All_Data$Insurance_History_5  <- cut(as.numeric(All_Data$Insurance_History_5), 30)
-All_Data$Family_Hist_2 <- cut(as.numeric(All_Data$Family_Hist_2), 30)
-All_Data$Family_Hist_3 <- cut(as.numeric(All_Data$Family_Hist_3), 30)
-All_Data$Family_Hist_4 <- cut(as.numeric(All_Data$Family_Hist_4), 30)
-All_Data$Family_Hist_5 <- cut(as.numeric(All_Data$Family_Hist_5), 30)
+All_Data$Employment_Info_1 <- addNA(cut2(All_Data$Employment_Info_1, m=2000, levels.mean=T))
+All_Data$Employment_Info_4 <- addNA(cut2(All_Data$Employment_Info_4, m=500, levels.mean=T))
+All_Data$Employment_Info_6 <- addNA(cut2(All_Data$Employment_Info_6, m=2000, levels.mean=T))
+All_Data$Insurance_History_5  <- addNA(cut2(All_Data$Insurance_History_5, m=1000, levels.mean=T))
+All_Data$Family_Hist_2 <- addNA(cut2(All_Data$Family_Hist_2, m=2000, levels.mean=T))
+All_Data$Family_Hist_3 <- addNA(cut2(All_Data$Family_Hist_3, m=1000, levels.mean=T))
+All_Data$Family_Hist_4 <- addNA(cut2(All_Data$Family_Hist_4, m=2000, levels.mean=T))
+All_Data$Family_Hist_5 <- addNA(cut2(All_Data$Family_Hist_5, m=750, levels.mean=T))
 
 
 ##############################################################
@@ -102,10 +101,10 @@ data_columns <- c('Ht','Wt','BMI','Ins_Age'
                   ,paste("Product_Info_", 1:7, sep="")
                   ,paste("Insurance_History_", 1:5, sep=""),paste("Insurance_History_", 7:9, sep="")
                   ,paste("Employment_Info_", 1:6, sep="")
-                  ,paste("InsuredInfo_", 1:6, sep="")
-                  ,paste("Family_Hist_", 1:5, sep="")
-                  ,paste("Medical_History_",1:41,sep="")
-                  ,paste("Medical_Keyword_",1:48,sep="")                  
+#                  ,paste("InsuredInfo_", 1:6, sep="")
+#                  ,paste("Family_Hist_", 1:5, sep="")
+#                  ,paste("Medical_History_",1:41,sep="")
+#                  ,paste("Medical_Keyword_",1:48,sep="")                  
                   )
 
 
@@ -135,6 +134,9 @@ library("neuralnet")
 
 
 library("Metrics")
+
+
+#http://stackoverflow.com/questions/25510960/how-to-implement-own-error-function-while-using-neuralnet-package-in-r
 #custom <- function(x,y){
 #    print ("Inside")
     #sqwk <- ScoreQuadraticWeightedKappa(as.numeric(x), as.numeric(y))
@@ -144,8 +146,11 @@ library("Metrics")
 
 
 #custom <- function(x,y){1/2*(y-x)^2}
+#v1 <- matrix(c(1,2,4,8,16,32,64,128,2,1,2,4,8,16,32,64,4,2,1,2,4,8,16,32,8,4,2,1,2,4,8,16,16,8,4,2,1,2,4,8,32,16,8,4,2,1,2,4,64,32,16,8,4,2,1,2,128,64,32,16,8,4,2,1), ncol = 8, byrow = TRUE)
+# v2 <- c(0,0,0,0,0,0,0,1)
+# v2 %*% v1
 
-nnModel = neuralnet(f2,data=nn_train_data,linear.output=F, lifesign = 'full', threshold=0.01)
+nnModel = neuralnet(f2,data=nn_train_data,linear.output=F, lifesign = 'full', hidden=100, threshold=0.01)
 
 
 

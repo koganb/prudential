@@ -13,20 +13,23 @@
 ###############################################################################
 #Step 1: Read in the data and define variables as either a factor or numeric
 #########################################################################################
+rm(list = ls())  #remove environment
+
 
 library(futile.logger)
 flog.threshold(DEBUG)
 
 train <- read.csv("data/train.csv",stringsAsFactors = T) #59,381 observations, 128 variables
-test <- read.csv("data/test.csv",stringsAsFactors = T) #19,765 observations, 127 variables - test does not have a response field
+#test <- read.csv("data/test.csv",stringsAsFactors = T) #19,765 observations, 127 variables - test does not have a response field
 
 train$Train_Flag <- 1 #Add in a flag to identify if observations fall in train data, 1 train, 0 test
-test$Train_Flag <- 0 #Add in a flag to identify if observations fall in train data, 1 train, 0 test
-test$Response <- NA #Add in a column for Response in the test data and initialize to NA
+#test$Train_Flag <- 0 #Add in a flag to identify if observations fall in train data, 1 train, 0 test
+#test$Response <- NA #Add in a column for Response in the test data and initialize to NA
 
 
 #concatenate train and test together, any features we create will be on both data sets with the same code. This will make scoring easy
-All_Data <- rbind(train,test) #79,146 observations, 129 variables 
+#All_Data <- rbind(train,test) #79,146 observations, 129 variables 
+All_Data <- train 
 
 
 
@@ -38,12 +41,21 @@ Data_2<- data.frame(apply(Data_2, 2, as.factor))
 All_Data <- cbind(Data_1,Data_2) #79,146 observations, 129 variables
 
 #We don't need Data_1,Data_2,train or test anymore
-rm(Data_1,Data_2,train,test)
+rm(Data_1,Data_2,train)
 
 
 library("Hmisc")
 
 #convert numeric to factor
+
+normalize <- function(x) {(x - min(x, na.rm=TRUE))/(max(x,na.rm=TRUE))}
+
+All_Data$Ht <- normalize(All_Data$Ht)
+All_Data$Wt <- normalize(All_Data$Wt)
+All_Data$BMI <- normalize(All_Data$BMI)
+All_Data$Ins_Age <- normalize(All_Data$Ins_Age)
+
+
 All_Data$Medical_History_1 <- addNA(cut2(All_Data$Medical_History_1, m=500,levels.mean=T))
 All_Data$Medical_History_2 <- cut2(All_Data$Medical_History_2, m=1500, levels.mean=T)
 All_Data$Medical_History_10 <- addNA(cut2(All_Data$Medical_History_10, m=100, levels.mean=T))
@@ -66,7 +78,11 @@ All_Data$Family_Hist_5 <- addNA(cut2(All_Data$Family_Hist_5, m=750, levels.mean=
 ##########################################################
 
 train <- All_Data[All_Data$Train_Flag==1,] #59,381, 131 variables
-test <- All_Data[All_Data$Train_Flag==0,] #19,765, 131 variables
+#test <- All_Data[All_Data$Train_Flag==0,] #19,765, 131 variables
+
+rm(All_Data)
+
+
 
 set.seed(1234)
 train$random <- runif(nrow(train))
@@ -81,13 +97,15 @@ train$random <- runif(nrow(train))
 train_70 <- train[train$random <= 0.7,] #41,561 obs
 train_30 <- train[train$random > 0.7,] #17,820 obs
 
+rm(train)
+
 #Lets have a look at distribution of response on train_70 and train_30
 
-round(table(train_70$Response)/nrow(train_70),2)
+#round(table(train_70$Response)/nrow(train_70),2)
 # 1     2     3      4     5     6    7    8  
 #0.10  0.11  0.02  0.02  0.09  0.19  0.13  0.33
 
-round(table(train_30$Response)/nrow(train_30),2)
+#round(table(train_30$Response)/nrow(train_30),2)
 #  1     2     3     4     5     6     7    8 
 #0.10  0.11  0.02  0.02  0.09  0.19  0.14  0.33
 
@@ -101,10 +119,10 @@ data_columns <- c('Ht','Wt','BMI','Ins_Age'
                   ,paste("Product_Info_", 1:7, sep="")
                   ,paste("Insurance_History_", 1:5, sep=""),paste("Insurance_History_", 7:9, sep="")
                   ,paste("Employment_Info_", 1:6, sep="")
-#                  ,paste("InsuredInfo_", 1:6, sep="")
-#                  ,paste("Family_Hist_", 1:5, sep="")
-#                  ,paste("Medical_History_",1:41,sep="")
-#                  ,paste("Medical_Keyword_",1:48,sep="")                  
+                  ,paste("InsuredInfo_", 1:6, sep="")
+                  ,paste("Family_Hist_", 1:5, sep="")
+                  ,paste("Medical_History_",1:41,sep="")
+                  ,paste("Medical_Keyword_",1:48,sep="")                  
                   )
 
 
@@ -115,8 +133,12 @@ data_columns <- c('Ht','Wt','BMI','Ins_Age'
 f1 <- as.formula(paste0("~0+", paste(data_columns, collapse="+"), "+Response"))
 
 train_70_subset<-subset(train_70,select=append(data_columns, "Response"))
+rm(train_70)
+
 
 nn_train_data=data.frame(model.matrix(f1, train_70_subset, lapply(as.list(Filter(is.factor, train_70_subset)), contrasts,  contrasts = FALSE)))
+rm(train_70_subset)
+
 
 f2 <- as.formula(paste0(paste(names(nn_train_data)[grepl("Response", names(nn_train_data))], collapse="+"), "~", paste(names(nn_train_data)[!grepl("Response", names(nn_train_data))], collapse="+")))
 
@@ -124,8 +146,6 @@ f2 <- as.formula(paste0(paste(names(nn_train_data)[grepl("Response", names(nn_tr
 f3 <- as.formula(paste0("~0+", paste(data_columns, collapse="+")))
 
 
-train_30_subset<-subset(train_30, select=data_columns)
-nn_test_data=data.frame(model.matrix(f3, train_30_subset,lapply(as.list(Filter(is.factor, train_30_subset)), contrasts,  contrasts = FALSE)))
 
 
 
@@ -150,9 +170,16 @@ library("Metrics")
 # v2 <- c(0,0,0,0,0,0,0,1)
 # v2 %*% v1
 
-nnModel = neuralnet(f2,data=nn_train_data,linear.output=F, lifesign = 'full', hidden=100, threshold=0.01)
+nnModel = neuralnet(f2,data=nn_train_data,linear.output=F, lifesign = 'full', stepmax=300000, rep=1, threshold=0.02, err.fct='ce')
+
+save(nnModel, file = format(Sys.time(), "nnModel_%Y%m%d_%I%M.rda"))
 
 
+rm(nn_train_data)
+
+
+train_30_subset<-subset(train_30, select=data_columns)
+nn_test_data=data.frame(model.matrix(f3, train_30_subset,lapply(as.list(Filter(is.factor, train_30_subset)), contrasts,  contrasts = FALSE)))
 
 
 train_30$Prediction <- apply(compute(nnModel,nn_test_data)$net.result, 1, which.max)

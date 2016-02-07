@@ -170,7 +170,7 @@ library("Metrics")
 # v2 <- c(0,0,0,0,0,0,0,1)
 # v2 %*% v1
 
-nnModel = neuralnet(f2,data=nn_train_data,linear.output=F, lifesign = 'full', stepmax=300000, rep=1, threshold=0.02, err.fct='ce')
+nnModel = neuralnet(f2,data=nn_train_data,linear.output=F, lifesign = 'full', stepmax=500000, rep=1, hidden=c(20), threshold=0.15, err.fct='ce')
 
 save(nnModel, file = format(Sys.time(), "nnModel_%Y%m%d_%I%M.rda"))
 

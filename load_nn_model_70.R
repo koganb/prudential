@@ -59,12 +59,9 @@ gbmFit <- train(Response ~ ., data = nn_result_data,
                 metric = "sqwk")
 
 
-
-
-
-
-
-train_30$Prediction <- predict(gbmFit, newdata = compute(nnModel,test_30_nn_data[, -grep("Response", colnames(test_30_nn_data))])$net.result)
+train_model <- compute(nnModel,test_30_nn_data)$net.result
+colnames(train_model) <- c(1:8)
+train_30$Prediction <- predict(gbmFit, newdata = train_model)
 
 
 print(round((table(train_30$Prediction,train_30$Response)/nrow(train_30))*100,1))

@@ -4,93 +4,6 @@ flog.threshold(DEBUG)
 
 rm(list = ls())
 
-train <- read.csv("data/train.csv",stringsAsFactors = T) #59,381 observations, 128 variables
-test <- read.csv("data/test.csv",stringsAsFactors = T) #19,765 observations, 127 variables - test does not have a response field
-
-train$Train_Flag <- 1 #Add in a flag to identify if observations fall in train data, 1 train, 0 test
-test$Train_Flag <- 0 #Add in a flag to identify if observations fall in train data, 1 train, 0 test
-test$Response <- NA #Add in a column for Response in the test data and initialize to NA
-
-
-#concatenate train and test together, any features we create will be on both data sets with the same code. This will make scoring easy
-All_Data <- rbind(train,test) #79,146 observations, 129 variables 
-
-
-#Define variables as either numeric or factor, Data_1 - Numeric Variables, Data_2 - factor variables
-Data_1 <- All_Data[,names(All_Data) %in% c("Medical_History_10","Medical_History_2","Product_Info_4",    "Ins_Age",    "Ht",	"Wt",	"BMI",	"Employment_Info_1",	"Employment_Info_4",	"Employment_Info_6",	"Insurance_History_5",	"Family_Hist_2",	"Family_Hist_3",	"Family_Hist_4",	"Family_Hist_5",	"Medical_History_1",	"Medical_History_15",	"Medical_History_24",	"Medical_History_32",paste("Medical_Keyword_",1:48,sep=""))]
-Data_2 <- All_Data[,!(names(All_Data) %in% c("Medical_History_10","Medical_History_2","Product_Info_4",	"Ins_Age",	"Ht",	"Wt",	"BMI",	"Employment_Info_1",	"Employment_Info_4",	"Employment_Info_6",	"Insurance_History_5",	"Family_Hist_2",	"Family_Hist_3",	"Family_Hist_4",	"Family_Hist_5",	"Medical_History_1",	"Medical_History_15",	"Medical_History_24",	"Medical_History_32",paste("Medical_Keyword_",1:48,sep="")))]
-Data_2<- data.frame(apply(Data_2, 2, as.factor))
-
-All_Data <- cbind(Data_1,Data_2) #79,146 observations, 129 variables
-
-#We don't need Data_1,Data_2,train or test anymore
-rm(Data_1,Data_2,train,test)
-
-
-library("Hmisc")
-
-#convert numeric to factor
-All_Data$Medical_History_1 <- addNA(cut2(All_Data$Medical_History_1, m=500,levels.mean=T))
-All_Data$Medical_History_2 <- cut2(All_Data$Medical_History_2, m=1500, levels.mean=T)
-All_Data$Medical_History_10 <- addNA(cut2(All_Data$Medical_History_10, m=100, levels.mean=T))
-All_Data$Medical_History_15 <- addNA(cut2(All_Data$Medical_History_15, m=500, levels.mean=T))
-All_Data$Medical_History_24 <- addNA(cut2(All_Data$Medical_History_24, m=500, levels.mean=T))
-All_Data$Medical_History_32 <- addNA(cut2(All_Data$Medical_History_32, m=500, levels.mean=T))
-
-All_Data$Employment_Info_1 <- addNA(cut2(All_Data$Employment_Info_1, m=2000, levels.mean=T))
-All_Data$Employment_Info_4 <- addNA(cut2(All_Data$Employment_Info_4, m=500, levels.mean=T))
-All_Data$Employment_Info_6 <- addNA(cut2(All_Data$Employment_Info_6, m=2000, levels.mean=T))
-All_Data$Insurance_History_5  <- addNA(cut2(All_Data$Insurance_History_5, m=1000, levels.mean=T))
-All_Data$Family_Hist_2 <- addNA(cut2(All_Data$Family_Hist_2, m=2000, levels.mean=T))
-All_Data$Family_Hist_3 <- addNA(cut2(All_Data$Family_Hist_3, m=1000, levels.mean=T))
-All_Data$Family_Hist_4 <- addNA(cut2(All_Data$Family_Hist_4, m=2000, levels.mean=T))
-All_Data$Family_Hist_5 <- addNA(cut2(All_Data$Family_Hist_5, m=750, levels.mean=T))
-
-
-
-train <- All_Data[All_Data$Train_Flag==1,] #59,381, 131 variables
-test <- All_Data[All_Data$Train_Flag==0,] #19,765, 131 variables
-
-rm(All_Data)
-
-
-set.seed(1234)
-train$random <- runif(nrow(train))
-
-train_70 <- train[train$random <= 0.7,] #41,561 obs
-train_30 <- train[train$random > 0.7,] #17,820 obs
-
-rm(train)
-
-
-data_columns <- c('Ht','Wt','BMI','Ins_Age'
-                  ,paste("Product_Info_", 1:7, sep="")
-                  ,paste("Insurance_History_", 1:5, sep="")
-                  ,paste("Insurance_History_", 7:9, sep="")
-                  ,paste("Employment_Info_", 1:6, sep="")
-                  ,paste("InsuredInfo_", 1:6, sep="")
-                  ,paste("Family_Hist_", 1:5, sep="")
-                  ,paste("Medical_History_",1:41,sep="")
-                  ,paste("Medical_Keyword_",1:48,sep="")                  
-)
-
-
-
-
-
-
-f1 <- as.formula(paste0("~0+", paste(data_columns, collapse="+"), "+Response"))
-
-train_70_subset<-subset(train_70,select=append(data_columns, "Response"))
-rm(train_70)
-
-
-nn_train_data=data.frame(model.matrix(f1, train_70_subset, lapply(as.list(Filter(is.factor, train_70_subset)), contrasts,  contrasts = FALSE)))
-rm(train_70_subset)
-
-f3 <- as.formula(paste0("~0+", paste(data_columns, collapse="+")))
-
-
 
 
 
@@ -99,14 +12,23 @@ library("neuralnet")
 library("Metrics")
 
 flog.debug("start loading nn model")
-load('nnModel_20160206_1028.rda', verbose=T)
+load('nnModel_20160210_1206.rda', verbose=T)
 flog.debug("finished loading nn model")
+
+load('train_70_nn_data.rda', verbose=T)
+load('train_70.rda', verbose=T)
+load('train_30.rda', verbose=T)
+nn_result_data <- data.frame(cbind(
+  compute(nnModel,train_70_nn_data[, -grep("Response", colnames(train_70_nn_data))])$net.result,
+  train_70$Response))
+
+rm(nnModel)
 
 
 library(caret)
-nn_result_data <- cbind(compute(nnModel,nn_train_data)$net.result, train_70$Response)
-
 colnames(nn_result_data) <- c(1:8, "Response")
+
+nn_result_data$Response <- as.factor(nn_result_data$Response)
 
 
 sqwkSummary <- function (data,
@@ -134,7 +56,7 @@ set.seed(825)
 gbmFit <- train(Response ~ ., data = nn_result_data,
                 method = "gbm",
                 trControl = fitControl,
-                verbose = FALSE,
+                verbose = T,
                 metric = "sqwk")
 
 
